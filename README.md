@@ -8,4 +8,5 @@ I plan to develop one of the higher IBM models that I will firstly develop the I
 I will maintain an hour-by-hour log for my activites and learning.
 
 Cheers,
+
 Hengfeng Li
