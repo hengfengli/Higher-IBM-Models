@@ -4,7 +4,7 @@
 """
 Activity Log
 
-1st Hour 
+### 1st Hour 
 
 I am starting to read the introduction of 4.4 and the whole section of 4.4.1
 which presents the IBM model 2 from the book of Statistical Machine 
@@ -16,7 +16,7 @@ of lexical translation step and alignment step. The lexical translation step
 is similar with IBM Model 1, but the alignment step needs an alignment 
 probability distribution. 
 
-2nd Hour
+### 2nd Hour
 
 I cannot fully understand the alignment probability distribution, which is 
 mainly based on the positions of the input and output words. So I found some
@@ -28,7 +28,7 @@ l_f is the length of foreign sentence.
 http://www.cs.columbia.edu/~cs4705/notes/ibm12.pdf
 www.computing.dcu.ie/~dgroves/CA446/IBMModels.pptx
 
-3rd Hour 
+### 3rd Hour 
 
 I establish a repository for this project on GitHub and begin to read the 
 code of Figure 4.7 of EM training algorithm for IBM Model 2 on the book. 
@@ -36,7 +36,7 @@ I notice that it needs the code from IBM Model 1 to do a few iterations
 for initializing. Also, I release that I need to look for some sentence 
 pairs to train my model so that it can be tested for its correctness. 
 
-4th Hour 
+### 4th Hour 
 
 I start to implement the EM training algorithm for IBM Model 2. Firstly, 
 it needs the code of IBM model 1, so I use my code from worksheet 5. However,
@@ -45,7 +45,7 @@ some problems about how to initialize an alignment distribution and what
 type should be defined for this structure. Finally, I use a 4-dimension of
 default dictionary to represent the alignment probability distribution. 
 
-5th Hour
+### 5th Hour
 
 I am confused about the index of j and i in Figure 4.7, which j starts
 from 1 to length of English sentence, but i starts from 0 to length of 
@@ -58,14 +58,14 @@ sentence to a foreign sentence, which is a little bit different from
 our case. However, I still get some knowledge from the function
 "model2::initialize_table_uniformly" in model2.cpp file. 
 
-6th Hour
+### 6th Hour
 
 I just simplely add NULL token in the first position of foreign sentences.
 I write the code of the initializing part and just one iteration of 
 training part. I really carefully check whether I make a mistake on 
 the index of j and i. 
 
-7th Hour
+### 7th Hour
 
 When I run my code of EM training algorithm, I spend certain time for 
 fixing some errors. 
@@ -80,7 +80,7 @@ After I check the content of count_align, I find that I cannot use the
 value of a dictionary for an operand "+=" because I did not defined a 
 default value for it. The same error happens for the "total_align". 
 
-8th Hour
+### 8th Hour
 
 The "EM_training_ibm2" function can successfully run and return the 
 lexical and alignment probability distributions. Originally, I write 
@@ -92,6 +92,48 @@ index on the first dimension and English index on the second one.
 Although now I can get the lexical and alignment probability distributions,
 I still need to think about how to generate a number of different 
 translations for a sentence that each has a different probability. 
+
+### 9th Hour 
+
+I am look for materials about how to use lexical and alignment 
+probability distribution to find the best translation. 
+
+I find Gawron's slides, which talked about an similar assignment 
+to implement IBM model 2. It is more complicated than the algorithm
+provided on Koehn's book, because it uses the laplace smoothing 
+for the counts of alignment distribution. 
+
+http://www-rohan.sdsu.edu/~gawron/mt_plus/mt/course_core/lectures/assignment_five.pdf
+
+### 10th Hour
+
+I find another project specification from a subject in University
+of Amsterdam, which mentions the noisy-channel model. It inspires 
+me how to find the best translation for an input sentence.
+
+http://staff.science.uva.nl/~deoskar/ProbGramAndDOP09/projectdescription-SMT.pdf
+
+### 11th Hour 
+
+I go back to read carefully for the 4.3.2 and 4.3.3 sections on Koehn's 
+book, which introduces the language model and the noisy-channel model. 
+
+I realize that in noisy-channel model, the translation direction has 
+changed from p(e|f) to p(f|e) that is the reason why the reference
+code confuses me. I think it is different concept in mathematic, but
+in our application, we can just change the input and output sentence.
+It means that the input sentence is the English and the output sentence
+is the French. For the language model, I have learned N-gram language 
+modelling in the lecture 3. 
+
+### 12th Hour
+
+I read carefully for the project specification I found from University of
+Amsteradm, it mentions that a fundamental problem in SMT is the word 
+aligning a bitext. It said that word aligning a bitext is often the first 
+step for training many modern SMT systems. I think it is a reasonable 
+goal for my project to build a word aligner of a bitext based on 
+IBM model 2. 
 
 """
 from __future__ import division
