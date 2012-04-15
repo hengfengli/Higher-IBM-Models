@@ -131,9 +131,32 @@ modelling in the lecture 3.
 I read carefully for the project specification I found from University of
 Amsteradm, it mentions that a fundamental problem in SMT is the word 
 aligning a bitext. It said that word aligning a bitext is often the first 
-step for training many modern SMT systems. I think it is a reasonable 
-goal for my project to build a word aligner of a bitext based on 
-IBM model 2. 
+step for training many modern SMT systems. I think it is a reasonable to 
+build a word aligner of a bitext based on IBM model 2 at first. 
+
+### 13th Hour
+
+### 14th Hour
+
+### 15th Hour
+
+### 16th Hour
+
+### 17th Hour
+
+### 18th Hour
+
+### 19th Hour
+
+### 20th Hour
+
+### 21th Hour
+
+### 22th Hour
+
+### 23th Hour
+
+### 24th Hour
 
 """
 from __future__ import division
