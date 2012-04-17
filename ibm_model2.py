@@ -134,146 +134,492 @@ aligning a bitext. It said that word aligning a bitext is often the first
 step for training many modern SMT systems. I think it is a reasonable to 
 build a word aligner of a bitext based on IBM model 2 at first. 
 
+### 13th Hour
+
+There is an implementation of word aligner in nltk packge, but it is based
+on IBM Model 1. So I can use the class of Alignment and AligneSent to 
+implement a word aligner based on IBM Model 2. 
+
+https://github.com/nltk/nltk/blob/master/nltk/align.py
+
+I find a little bug of IBMModel 1 on the '2.0.1rc3' version of nltk. When
+I use the aligned function in IBMModel1, it prompts 
+
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/Library/Python/2.7/site-packages/nltk-2.0.1rc3-py2.7.egg/nltk/align.py", line 396, in aligned
+    if self.probablities is None:
+AttributeError: 'IBMModel1' object has no attribute 'probablities'
+
+I think there is a spelling mistake on that version.
+
+### 14th Hour
+
+I create the IBMModel2 class, make a train method, change all the previous
+code into that class. Also, I need to test its correctness after moving. 
+
+Besides, I read another material about word alignment models, which did 
+the similar stuff as our case. And it mentions the requirements about 
+the implementation of a word aligner for Machine Translation. 
+
+http://www.stanford.edu/class/cs224n/pa/pa2.pdf
+
+### 15th Hour
+
+I spend some time to use the AlignedSent class to replace my original 
+'bitexts', which can take advantage of Alignment class. Besides, there is
+a aligned corpus 'comtrans' in nltk packge, which uses AlignedSent to 
+represent its items. Also, I do some tests to ensure the correctness 
+for my program.
+
+### 16th Hour
+
+In IBM model 2, there are lexical and alignment probabilities, but the 
+problem is how to use them to find out the best word alignment. 
+
+The aligned function of IBMModel1 in nltk packge finds the maximum t(e|f)
+for each word in English sentence and stores all links on an instance of 
+class Alignment. 
+
+My simple thought is to use the a(i|j,l_e,l_f). With given j, length of 
+English sentence and length of French sentence, we can find which i has 
+the maximum probability. 
+
+I change the index of 't_ef' and 'count_ef' back to the original one, 
+which put English word at first and foreign word at second because 
+I realize that this is more convenient to understand the code.  
+
+### 17th Hour
+
+After I read the formula 4.25 on section 4.4.1 of textbook, I think 
+IBMModel2 should be based on the same way from IBMModel1. However, 
+it should time with the corresponding alignment probability in 
+IBM Model 2. The material from following link gives me confidence 
+to complete my thought.
+
+http://www.cs.columbia.edu/~cs4705/hw2/h2-programming.pdf
+
+### 18th Hour
+
+When I run my program, the compiler prompts an error:
+
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "ibm_model2.py", line 246, in align
+    max_alignProb = (self.probabilities[en_word][None]*self.alignments[0][j][l_e][l_f], None)
+TypeError: unsupported operand type(s) for *: 'float' and 'type'
+
+I think it is the initializing problem of alignments distribution
+probabilities. When initializing the defaultdict structure, I just 
+set a data type for it, but I didn't set a default value for it. 
+That is the reason why the compiler says the operand cannot be used
+on 'float' and 'type'.
+
+After I fix the above problem, the program can successfully run. However,
+when I test it with reordering sentence, all the English word are linked
+with Null token. After I check the content of lexical and alignment 
+distribution probabilities, I find that the alignment probabilities is 
+zero even when lexical probability has a higher value. So I think it needs
+to do the laplace smoothing, which add 0.5 for probability weighted counts.
+
+This smoothing method is reference from the following link:
+http://www-rohan.sdsu.edu/~gawron/mt_plus/mt/course_core/lectures/assignment_five.pdf
+
+### 19th Hour
+
+Now, I can use the aligned sentence of comtrans corpus in nltk package to 
+do some tests to validate the correctness of my program. My evaluation is 
+very simple that after training the model, using the program finds the 
+alignments for the training data so that its precision can be tested. 
+I notice that the AlignedSent class provides a 'precision' method to 
+compare two alignment. So I have the correct alignment that can be the 
+golden standard. 
+
+### 20th Hour
+
+I use the first 100 sentences in comtrans corpus to train my model, 
+which spends 10 seconds and average 140MB memory. 
+
+I test 100 sentences to 300 sentences by using my model.
+
+=======================================================
+sents  |  en num  |  fr num  |   time    |   memory
+-------------------------------------------------------
+100        616        666       10sec         140MB
+200       1011       1143       26sec         200MB
+300       1411       1640       69sec         470MB
+=======================================================
+
+Also, I make a comparison between the IBMModel1 in nltk package 
+and the IBMModel1 I written.
+
+=======================================================
+sents |     nltk version   ||      my version     
+      |   time   |  memory ||    time    |   memory
+-------------------------------------------------------
+100      32.5sec     190MB      5.7sec         130MB
+200     103.5sec     400MB     14.5sec         190MB
+300     260.2sec     750MB     35.8sec         490MB
+=======================================================
+
+From above table, I think the time does not make any 
+sense, because my model 1 only runs for 10 iterations 
+while the nltk version runs to a converged state.
+
+However, it is interested in the memory comparisons that
+nltk model 1 uses 750MB memory when training for 300 sentences, 
+which is larger than my version. 
+
+I check the source code of IBMModel1 class and I find the obvious
+difference is the representation of multi-dimensional dictionary. 
+It uses defaultdict[a,b,c,d], but I uses the way of defaultdict[a][b][c][d].
+I make a test that changing all my representation to defaultdict[a,b,c,d].
+And I find that my model 1 also needs more than 750MB when train 
+300 sentences, which proves my thought that defaultdict[a][b][c][d]
+is using less memory than defaultdict[a,b,c,d] in Python. 
+
+### 21th Hour
+
+Now, my problem is that the model does not have a good precision 
+with training for small sentences, but the large sentences takes
+a huge memory space, which is impossible for normal computer. 
+
+After I make some checks on my program, spending the huge memory
+happens on the following code:
+
+for f in fr_vocab:
+	for e in en_vocab:
+		t_ef[e][f] = count_ef[e][f] / total_f[f]
+
+I cannot figure out the reason why it takes a huge memory. For 
+example, in terms of 300 sentences, there are 1411 English words
+and 1640 foreign words and each float64 type takes 8 Bytes, so 
+it should take 2.3M * 8 Bytes = 18.4 MB. 
+
+Even when I change the code like following, just assign a float 
+value to it on my model 1. 
+
+for f in fr_vocab:
+	for e in en_vocab:
+		t_ef[e][f] = 0.1
+
+It also takes 470MB memory when running. 
+
+### 22th Hour
+
+My thought is gradually training, 
+
 """
 from __future__ import division
 from collections import defaultdict
+from nltk.align import AlignedSent, Alignment, IBMModel1
+from nltk.corpus import comtrans
+import random
 
-def EM_training_ibm1(bitexts, num_iter):
+class IBMModel2(object):
+
+	def __init__(self, num_iter):
+		self.num_iter = num_iter
+		self.probabilities = None
+		self.alignments = None
+
+	def train(self, alignSents):
+		self.probabilities, self.alignments = self.EM_training_ibm2(alignSents)
+
 	"""
-	Return the translation probability model. 
+	def getProb(self, translatedWord, givenWord):
+		return self.probabilities[givenWord][translatedWord]
 
-	Arguments:
-	bitexts   -- A list contains some sentence pairs. 
-	num_iter  -- The number of iterations.
-
-	Returns:
-	t_ef         -- A dictionary of translation probabilities. 
+	def getAlignmentProb(self, alignSent):
+		l_e = len(alignSent.words)
+		l_f = len(alignSent.mots)
+		
+		alignProb = 1 
+		for (i, j) in alignSent.alignment:
+			alignProb *= self.alignments[i][j][l_e][l_f]
+		return alignProb
 	"""
-	# Vocabulary of each language
-	fr_vocab = set([word for text in bitexts for word in text[0] ])
-	en_vocab = set([word for text in bitexts for word in text[1] ])
-	# Initial probability
-	init_prob = 1 / len(en_vocab)
 
-	# Create the translation model with initial probability
-	t_ef = defaultdict(lambda: defaultdict(lambda: init_prob))
+	def align(self, alignSent):
+		if self.probabilities is None or self.alignments is None:
+			raise ValueError("The model does not train.")
 
-	total_e = defaultdict(float)
+		alignment = []
 
-	# close_to_zero = approx
-	# close_to_one  = 1.0 - approx
-	# converged = False
-	# while not converged:
-	for i in range(0, num_iter):
-		count_ef = defaultdict(lambda: defaultdict(float))
-		total_f = defaultdict(float)
+		l_e = len(alignSent.words);
+		l_f = len(alignSent.mots);
 
-		for fr_set, en_set in bitexts:
-			# Compute normalization
-			for e in en_set:
-				total_e[e] = 0
-				for f in fr_set:
-					total_e[e] += t_ef[f][e]
+		for j, en_word in enumerate(alignSent.words):
+			
+			max_alignProb = (self.probabilities[en_word][None]*self.alignments[0][j+1][l_e][l_f], None)
+			for i, fr_word in enumerate(alignSent.mots):
+				
+				#print 'prob:', en_word, fr_word, self.probabilities[en_word][fr_word]
+				#print 'alig:', i+1, j+1, l_e, l_f, self.alignments[i+1][j+1][l_e][l_f]
+				max_alignProb = max(max_alignProb,
+					(self.probabilities[en_word][fr_word]*self.alignments[i+1][j+1][l_e][l_f], i))
 
-			# Collect counts
-			for e in en_set:
-				for f in fr_set:
-					count_ef[f][e] += t_ef[f][e] / total_e[e]
-					total_f[f] += t_ef[f][e] / total_e[e]	
+			#print max_alignProb[1]
+			if max_alignProb[1] is not None:
+				alignment.append((j, max_alignProb[1]))
 
-		# converged = True
-		# Compute the estimate probabilities
-		for f in fr_vocab:
-			for e in en_vocab:
-				t_ef[f][e] = count_ef[f][e] / total_f[f]
-
-				# if t_ef[e][f] >= close_to_zero and t_ef[e][f] <= close_to_one:
-				#	converged = False
-
-	return t_ef
+		#print alignment
+		return AlignedSent(alignSent.words, alignSent.mots, alignment)
 
 
-def EM_training_ibm2(bitexts, num_iter):
+	def EM_training_ibm1(self, alignSents, num_iter):
+		"""
+		Return the translation probability model. 
 
-	t_ef = EM_training_ibm1(bitexts, 10)
-	
-	fr_vocab = set([word for text in bitexts for word in text[0] ])
-	en_vocab = set([word for text in bitexts for word in text[1] ])
+		Arguments:
+		bitexts   -- A list contains some sentence pairs. 
+		num_iter  -- The number of iterations.
 
-	align = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: float))))
+		Returns:
+		t_ef      -- A dictionary of translation probabilities. 
+		"""
+		# Vocabulary of each language
+		fr_vocab = set()
+		en_vocab = set()
+		for alignSent in alignSents:
+			en_vocab.update(alignSent.words)
+			fr_vocab.update(alignSent.mots)
+		fr_vocab.add(None)
 
-	# initialize a(i|j,l_e, l_f) = 1/(l_f + 1)
-	for fr_set, en_set in bitexts:
-		l_f = len(fr_set) - 1
-		l_e = len(en_set)
-		initial_value = 1 / (l_f + 1)
-		for i in range(0, l_f+1):
-			for j in range(1, l_e+1):
-				align[i][j][l_e][l_f] = initial_value
+		print len(fr_vocab), len(en_vocab)
 
-	for i in range(0, num_iter):
-		count_ef = defaultdict(lambda: defaultdict(float))
-		total_f = defaultdict(float)
+		# fr_vocab = set([word for text in bitexts for word in text[0] ])
+		# en_vocab = set([word for text in bitexts for word in text[1] ])
 
-		count_align = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0))))
-		total_align = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0)))
+		# Initial probability
+		init_prob = 1 / len(en_vocab)
 
-		total_e = defaultdict(float)
+		# Create the translation model with initial probability
+		t_ef = defaultdict(lambda: defaultdict(lambda: init_prob))
 
-		for fr_set, en_set in bitexts:
-			l_f = len(fr_set) - 1
-			l_e = len(en_set)
+		total_e = defaultdict(lambda: 0.0)
 
-			# compute normalization
-			for j in range(1, l_e+1):
-				en_word = en_set[j-1]
-				total_e[en_word] = 0
-				for i in range(0, l_f+1):
-					total_e[en_word] += t_ef[fr_set[i]][en_word] * align[i][j][l_e][l_f]
+		# close_to_zero = approx
+		# close_to_one  = 1.0 - approx
+		# converged = False
+		# while not converged:
 
-			# collect counts
-			for j in range(1, l_e+1):
-				en_word = en_set[j-1]
-				for i in range(0, l_f+1):
-					fr_word = fr_set[i]
-					c = t_ef[fr_word][en_word] * align[i][j][l_e][l_f] / total_e[en_word]
-					count_ef[fr_word][en_word] += c
-					total_f[fr_word] += c
-					count_align[i][j][l_e][l_f] += c
-					total_align[j][l_e][l_f] += c
+		for i in range(0, num_iter):
+			count_ef = defaultdict(lambda: defaultdict(lambda: 0.0))
+			total_f = defaultdict(lambda: 0.0)
 
-		# estimate probabilities
-		t_ef = defaultdict(lambda: defaultdict(lambda: float))
+			for alignSent in alignSents:
+				en_set = alignSent.words
+				fr_set = [None] + alignSent.mots  
+
+				# Compute normalization
+				for e in en_set:
+					total_e[e] = 0.0
+					for f in fr_set:
+						total_e[e] += t_ef[e][f]
+
+				# Collect counts
+				for e in en_set:
+					for f in fr_set:
+						c = t_ef[e][f] / total_e[e]
+						count_ef[e][f] += c
+						total_f[f] += c
+
+			# converged = True
+			# Compute the estimate probabilities
+			for f in fr_vocab:
+				for e in en_vocab:
+					t_ef[e][f] = count_ef[e][f] / total_f[f]
+
+					# if t_ef[e][f] >= close_to_zero and t_ef[e][f] <= close_to_one:
+					#	converged = False
+
+		return t_ef
+
+	def EM_training_ibm2(self, alignSents):
+
+		t_ef = self.EM_training_ibm1(alignSents, 10)
+		
+		fr_vocab = set()
+		en_vocab = set()
+		for alignSent in alignSents:
+			en_vocab.update(alignSent.words)
+			fr_vocab.update(alignSent.mots)
+		fr_vocab.add(None)
+
+		# fr_vocab = set([word for text in bitexts for word in text[0] ])
+		# en_vocab = set([word for text in bitexts for word in text[1] ])
+
 		align = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: float))))
 
-		for f in fr_vocab:
-			for e in en_vocab:
-				t_ef[f][e] = count_ef[f][e] / total_f[f]
-
-		for fr_set, en_set in bitexts:
+		# initialize a(i|j,l_e, l_f) = 1/(l_f + 1)
+		# for fr_set, en_set in bitexts:
+		for alignSent in alignSents:
+			en_set = alignSent.words
+			fr_set = [None] + alignSent.mots
 			l_f = len(fr_set) - 1
 			l_e = len(en_set)
+			initial_value = 1 / (l_f + 1)
 			for i in range(0, l_f+1):
 				for j in range(1, l_e+1):
-					align[i][j][l_e][l_f] = count_align[i][j][l_e][l_f] / total_align[j][l_e][l_f]
+					align[i][j][l_e][l_f] = initial_value
 
-	return t_ef, align
+		for i in range(0, self.num_iter):
+			count_ef = defaultdict(lambda: defaultdict(float))
+			total_f = defaultdict(float)
+
+			count_align = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0))))
+			total_align = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0)))
+
+			total_e = defaultdict(float)
+
+			# for fr_set, en_set in bitexts:
+			for alignSent in alignSents:
+				en_set = alignSent.words
+				fr_set = [None] + alignSent.mots
+				l_f = len(fr_set) - 1
+				l_e = len(en_set)
+
+				# compute normalization
+				for j in range(1, l_e+1):
+					en_word = en_set[j-1]
+					total_e[en_word] = 0
+					for i in range(0, l_f+1):
+						total_e[en_word] += t_ef[en_word][fr_set[i]] * align[i][j][l_e][l_f]
+
+				# collect counts
+				for j in range(1, l_e+1):
+					en_word = en_set[j-1]
+					for i in range(0, l_f+1):
+						fr_word = fr_set[i]
+						c = t_ef[en_word][fr_word] * align[i][j][l_e][l_f] / total_e[en_word]
+						count_ef[en_word][fr_word] += c
+						total_f[fr_word] += c
+						count_align[i][j][l_e][l_f] += c
+						total_align[j][l_e][l_f] += c
+
+			# estimate probabilities
+			t_ef = defaultdict(lambda: defaultdict(lambda: 0.0))
+			align = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0))))
+
+			#################
+			for alignSent in alignSents:
+				en_set = alignSent.words
+				fr_set = [None] + alignSent.mots
+				l_f = len(fr_set) - 1
+				l_e = len(en_set)
+
+				laplace = 1.0
+				for i in range(0, l_f+1):
+					for j in range(1, l_e+1):
+						value = count_align[i][j][l_e][l_f]
+						if value > 0 and value < laplace:
+							laplace = value
+
+				laplace *= 0.5 
+				for i in range(0, l_f+1):
+					for j in range(1, l_e+1):
+						# print i,j,l_e,l_f
+						count_align[i][j][l_e][l_f] += laplace
+
+				initial_value = laplace * l_e
+				for j in range(1, l_e+1):
+					total_align[j][l_e][l_f] += initial_value
+			#################
+
+			for f in fr_vocab:
+				for e in en_vocab:
+					t_ef[e][f] = count_ef[e][f] / total_f[f]
+
+			# for fr_set, en_set in bitexts:
+			for alignSent in alignSents:
+				en_set = alignSent.words
+				fr_set = [None] + alignSent.mots
+				l_f = len(fr_set) - 1
+				l_e = len(en_set)
+				for i in range(0, l_f+1):
+					for j in range(1, l_e+1):
+						align[i][j][l_e][l_f] = count_align[i][j][l_e][l_f] / total_align[j][l_e][l_f]
+						# print i,j,l_e,l_f, align[i][j][l_e][l_f]
+
+		return t_ef, align
+
+"""
+bitexts2 = 											\
+[ 													\
+	([None, 'das','Haus'],  ['the','house']), 		\
+	([None, 'das','Buch'],  ['the','book']), 		\
+	([None, 'ein','Buch'],    ['a','book']), 		\
+	([None, 'ein','Haus'],  ['a', 'house'])			\
+]
 
 
 bitexts2 = 											\
 [ 													\
-	(['NULL','das','Haus'], ['the','house']), 		\
-	(['NULL','das','Buch'], ['the','book']), 		\
-	(['NULL','ein','Buch'], ['a','book']), 			\
-	(['NULL','ein','Haus'], ['a', 'house'])			\
+	([None, 'the','house'], ['das','Haus']), 		\
+	([None, 'the','book'],  ['das','Buch']), 		\
+	([None, 'a','book'],    ['ein','Buch']), 		\
+	([None, 'a', 'house'],  ['ein','Haus'])			\
 ]
+"""
 
-t_ef, align = EM_training_ibm2(bitexts2, 10)
+# ibm2 = IBMModel2(10)
+# ibm2.train(bitexts2)
+
+# t_ef, align = EM_training_ibm2(bitexts2, 10)
+
+"""
+bitexts3 = 												\
+[ 														\
+	AlignedSent(['the','house'], ['das','Haus']), 		\
+	AlignedSent(['the','book'],  ['das','Buch']), 		\
+	AlignedSent(['a','book'],    ['ein','Buch'])  		\
+	# AlignedSent(['a', 'house'],  ['ein','Haus'])		\
+]
+"""
+
+"""
+bitexts3 = 												\
+[ 														\
+	AlignedSent(['das','Haus'], ['the','house']), 		\
+	AlignedSent(['das','Buch'],  ['the','book']), 		\
+	AlignedSent(['ein','Buch'],    ['a','book']), 		\
+	AlignedSent(['ein','Haus'],  ['a', 'house'])		\
+]
+"""
+
+"""
+align_list=[]
+
+for i in range(0, 1411):
+	align_i = []
+	for j in range(0, 1640):
+		align_i.append( np.float32(0.1))
+	align_list.append(align_i)
+"""
 
 
+bitexts = comtrans.aligned_sents()[:300]
+ibm2 = IBMModel2(5)
+# ibm2.EM_training_ibm2(bitexts)
+ibm2.EM_training_ibm1(bitexts, 10)
 
+# ibm1 = IBMModel1(bitexts)
 
+# ibm2.train(bitexts)
+# ibm2.train(bitexts3)
 
+# aligned = []
+# for sent in bitexts[:5]:
+#	words = sent.words
+#	mots  = sent.mots
+	# random.shuffle(mots)
+#	random_alignSent = AlignedSent(words, mots)
+#	aligned.append(ibm2.align(random_alignSent))
+# alignsent = ibm2.align(AlignedSent(['house','a'], ['ein','Haus']))
 
-
+#alignsent1 = AlignedSent(['a','house'], ['Haus','ein'])
+#ibm2.align(alignsent1)
+# alignment = ibm2.getAlignmentProb(AlignedSent(['das','Haus'], ['the','house'], '0-1 1-0'))
+# t_ef = ibm2.EM_training_ibm1(bitexts3, 10)
 
