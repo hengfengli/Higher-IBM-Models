@@ -206,7 +206,8 @@ When I run my program, the compiler prompts an error:
 Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
   File "ibm_model2.py", line 246, in align
-    max_alignProb = (self.probabilities[en_word][None]*self.alignments[0][j][l_e][l_f], None)
+    max_alignProb = (self.probabilities[en_word][None]
+    				 *self.alignments[0][j][l_e][l_f], None)
 TypeError: unsupported operand type(s) for *: 'float' and 'type'
 
 I think it is the initializing problem of alignments distribution
@@ -333,11 +334,14 @@ and return the evaluations.
 
 ### 24th Hour
 
+I write more comments to explain the class and functions. Also, I make some 
+doctest to test the functions and clearly explain how the function can be 
+used.
+
 I think the way of increasing the size of training data in Python is to 
 use C language writing some modules in order to improving the performnce
-and reducing the usage of memory space. 
-
-
+and reducing the usage of memory space. However, this project requires 
+pure Python implementation so we can try it on next project. 
 
 """
 from __future__  import division
@@ -346,87 +350,130 @@ from nltk.align  import AlignedSent
 from nltk.align  import Alignment
 from nltk.corpus import comtrans
 
-class IBMModel2(object):
 
+def replaceByNumber(bitexts):
+	"""
+	This function implements the approach to replace a word by an 
+	number in the sentence pairs. 
+
+	>>> en_dict, fr_dict, bitexts = replaceByNumber(comtrans.aligned_sents()[:100])
+	>>> en_dict['Kommission']
+	474
+	>>> fr_dict['check']
+	331
+	>>> bitexts[0]
+	AlignedSent([1, 2, 3], [1, 2, 3, 4], Alignment([(0, 0), (1, 1), (1, 2), (2, 3)]))
+
+	Arguments:
+	bitexts   -- A list of instances of AlignedSent class, which 
+				 contains sentence pairs. 
+
+	Returns:
+	en_dict         -- A dictionary with an English word as a key and
+					   an integer as a value.
+	fr_dict         -- A dictionary with an foreign word as a key and
+					   an integer as a value.
+	new_bitexts     -- A list of instances of AlignedSent class, which
+					   the sentence pairs that each word is represented 
+					   by a number.
+	"""
+	new_bitexts = []
+
+	# Assign zero as an initial value
+	en_dict = defaultdict(lambda: 0)
+	fr_dict = defaultdict(lambda: 0)
+
+	# The number starts from one to represent each word
+	en_count = 1
+	fr_count = 1
+	for aligned_sent in bitexts:
+		new_words = []
+		for word in aligned_sent.words:
+			if en_dict[word] == 0:
+				en_dict[word] = en_count
+				en_count += 1
+			# Append the integer to the new sentence
+			new_words.append(en_dict[word])
+
+		new_mots = []
+		for mots in aligned_sent.mots:
+			if fr_dict[mots] == 0:
+				fr_dict[mots] = fr_count
+				fr_count += 1
+			# Append the integer to the new sentence
+			new_mots.append(fr_dict[mots])
+
+		# Create a new instance of AlignedSent class 
+		# and append it to new list of sentence pairs.
+		new_bitexts.append(AlignedSent(new_words, new_mots, 
+									   aligned_sent.alignment))
+
+	return en_dict, fr_dict, new_bitexts
+
+class IBMModel2(object):
+	"""
+	This class implements the algorithm of Expectation Maximization for 
+	the IBM Model 2. 
+
+	Step 1 - Run a number of iterations of IBM Model 1 and get the initial
+			 distribution of translation probability. 
+
+	Step 2 - Collect the evidence of a English word being translated by a 
+			 foreign language word.
+
+	Step 3 - Estimate the probability of translation and alignment according 
+	         the evidence from Step 2. 
+
+	>>> bitexts = comtrans.aligned_sents()[:100]
+	>>> ibm = IBMModel2(bitexts, 5)
+	>>> aligned_sents = ibm.alignSents(bitexts)
+	>>> aligned_sents[0].words
+	['Wiederaufnahme', 'der', 'Sitzungsperiode']
+	>>> aligned_sents[0].mots
+	['Resumption', 'of', 'the', 'session']
+	>>> aligned_sents[0].alignment
+	Alignment([(0, 0), (1, 2), (2, 3)])
+	>>> bitexts[0].precision(aligned_sents[0])
+	0.75
+	>>> bitexts[0].recall(aligned_sents[0])
+	1.0
+	>>> bitexts[0].alignment_error_rate(aligned_sents[0])
+	0.1428571428571429
+
+	>>> prec, recall, error_rate = ibm.evaluate(bitexts, aligned_sents)
+	>>> prec
+	0.35018511941714076
+	>>> recall
+	0.39611872732188913
+	>>> error_rate
+	0.6305001263145995
+
+	"""
 	def __init__(self, alignSents, num_iter):
 		self.num_iter = num_iter
 		self.probabilities, self.alignments = self.EM_training_ibm2(alignSents)
 
-	def evaluate(self, bitexts, alignSents):
-		count = 0 
-		prec   = []
-		recall = []
-		error_rate = []
-		for item in alignSents:
-			prec.append(bitexts[count].precision(item))
-			recall.append(bitexts[count].recall(item))
-			error_rate.append(bitexts[count].alignment_error_rate(item))
-			count += 1
-		return sum(prec)/count, sum(recall)/count, sum(error_rate)/count
-
-	def alignSents(self, alignSents):
-
-		if self.probabilities is None or self.alignments is None:
-			raise ValueError("The model does not train.")
-
-		aligned_sents = []
-		for sent in alignSents:
-			new_alignSent = AlignedSent(sent.words, sent.mots)
-			aligned.append(self.align(new_alignSent))
-
-		return aligned_sents
-
-	def align(self, alignSent):
-
-		if self.probabilities is None or self.alignments is None:
-			raise ValueError("The model does not train.")
-
-		alignment = []
-
-		l_e = len(alignSent.words);
-		l_f = len(alignSent.mots);
-
-		for j, en_word in enumerate(alignSent.words):
-			
-			max_alignProb = (self.probabilities[en_word][None]*self.alignments[0][j+1][l_e][l_f], None)
-			for i, fr_word in enumerate(alignSent.mots):
-				
-				#print 'prob:', en_word, fr_word, self.probabilities[en_word][fr_word]
-				#print 'alig:', i+1, j+1, l_e, l_f, self.alignments[i+1][j+1][l_e][l_f]
-				max_alignProb = max(max_alignProb,
-					(self.probabilities[en_word][fr_word]*self.alignments[i+1][j+1][l_e][l_f], i))
-
-			#print max_alignProb[1]
-			if max_alignProb[1] is not None:
-				alignment.append((j, max_alignProb[1]))
-
-		#print alignment
-		return AlignedSent(alignSent.words, alignSent.mots, alignment)
-
-
 	def EM_training_ibm1(self, alignSents, num_iter):
 		"""
-		Return the translation probability model. 
+		Return the translation probability model trained by IBM model 1. 
 
 		Arguments:
-		alignSents   -- A list contains some sentence pairs. 
+		alignSents   -- A list of instances of AlignedSent class, which 
+						contains sentence pairs. 
 		num_iter     -- The number of iterations.
 
 		Returns:
 		t_ef         -- A dictionary of translation probabilities. 
 		"""
+
 		# Vocabulary of each language
 		fr_vocab = set()
 		en_vocab = set()
 		for alignSent in alignSents:
 			en_vocab.update(alignSent.words)
 			fr_vocab.update(alignSent.mots)
+		# Add the Null token
 		fr_vocab.add(None)
-
-		print len(fr_vocab), len(en_vocab)
-
-		# fr_vocab = set([word for text in bitexts for word in text[0] ])
-		# en_vocab = set([word for text in bitexts for word in text[1] ])
 
 		# Initial probability
 		init_prob = 1 / len(en_vocab)
@@ -435,11 +482,6 @@ class IBMModel2(object):
 		t_ef = defaultdict(lambda: defaultdict(lambda: init_prob))
 
 		total_e = defaultdict(lambda: 0.0)
-
-		# close_to_zero = approx
-		# close_to_one  = 1.0 - approx
-		# converged = False
-		# while not converged:
 
 		for i in range(0, num_iter):
 			count_ef = defaultdict(lambda: defaultdict(lambda: 0.0))
@@ -462,21 +504,32 @@ class IBMModel2(object):
 						count_ef[e][f] += c
 						total_f[f] += c
 
-			# converged = True
 			# Compute the estimate probabilities
 			for f in fr_vocab:
 				for e in en_vocab:
 					t_ef[e][f] = count_ef[e][f] / total_f[f]
 
-					# if t_ef[e][f] >= close_to_zero and t_ef[e][f] <= close_to_one:
-					#	converged = False
-
 		return t_ef		
 
 	def EM_training_ibm2(self, alignSents):
-		
+		"""
+		Return the translation and alignment probability distributions
+		trained by the Expectation Maximization algorithm for IBM Model 2. 
+
+		Arguments:
+		alignSents   -- A list contains some sentence pairs. 
+		num_iter     -- The number of iterations.
+
+		Returns:
+		t_ef         -- A distribution of translation probabilities.
+		align        -- A distribution of alignment probabilities.
+		"""
+
+		# Get initial translation probability distribution
+		# from a few iterations of Model 1 training.
 		t_ef = self.EM_training_ibm1(alignSents, 10)
 
+		# Vocabulary of each language
 		fr_vocab = set()
 		en_vocab = set()
 		for alignSent in alignSents:
@@ -484,13 +537,10 @@ class IBMModel2(object):
 			fr_vocab.update(alignSent.mots)
 		fr_vocab.add(None)
 
-		# fr_vocab = set([word for text in bitexts for word in text[0] ])
-		# en_vocab = set([word for text in bitexts for word in text[1] ])
-
 		align = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: float))))
 
-		# initialize a(i|j,l_e, l_f) = 1/(l_f + 1)
-		# for fr_set, en_set in bitexts:
+		# Initialize the distribution of alignment probability,
+		# a(i|j,l_e, l_f) = 1/(l_f + 1)
 		for alignSent in alignSents:
 			en_set = alignSent.words
 			fr_set = [None] + alignSent.mots
@@ -500,6 +550,7 @@ class IBMModel2(object):
 			for i in range(0, l_f+1):
 				for j in range(1, l_e+1):
 					align[i][j][l_e][l_f] = initial_value
+
 
 		for i in range(0, self.num_iter):
 			count_ef = defaultdict(lambda: defaultdict(float))
@@ -539,7 +590,7 @@ class IBMModel2(object):
 			t_ef = defaultdict(lambda: defaultdict(lambda: 0.0))
 			align = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0))))
 
-			#################
+			# Smoothing the counts for alignments
 			for alignSent in alignSents:
 				en_set = alignSent.words
 				fr_set = [None] + alignSent.mots
@@ -562,13 +613,13 @@ class IBMModel2(object):
 				initial_value = laplace * l_e
 				for j in range(1, l_e+1):
 					total_align[j][l_e][l_f] += initial_value
-			#################
-
+			
+			# Estimate the new lexical translation probabilities
 			for f in fr_vocab:
 				for e in en_vocab:
 					t_ef[e][f] = count_ef[e][f] / total_f[f]
 
-			# for fr_set, en_set in bitexts:
+			# Estimate the new alignment probabilities
 			for alignSent in alignSents:
 				en_set = alignSent.words
 				fr_set = [None] + alignSent.mots
@@ -577,43 +628,71 @@ class IBMModel2(object):
 				for i in range(0, l_f+1):
 					for j in range(1, l_e+1):
 						align[i][j][l_e][l_f] = count_align[i][j][l_e][l_f] / total_align[j][l_e][l_f]
-						# print i,j,l_e,l_f, align[i][j][l_e][l_f]
 
 		return t_ef, align
 
+	def align(self, alignSent):
+		"""
+		Returns the alignment result for one sentence pair. 
+		"""
 
-def replaceByNumber(bitexts):
-	new_bitexts = []
+		if self.probabilities is None or self.alignments is None:
+			raise ValueError("The model does not train.")
 
-	en_dict = defaultdict(lambda: 0)
-	fr_dict = defaultdict(lambda: 0)
+		alignment = []
 
-	en_count = 1
-	fr_count = 1
-	for aligned_sent in bitexts:
-		new_words = []
-		for word in aligned_sent.words:
-			if en_dict[word] == 0:
-				en_dict[word] = en_count
-				en_count += 1
-			new_words.append(en_dict[word])
+		l_e = len(alignSent.words);
+		l_f = len(alignSent.mots);
 
-		new_mots = []
-		for mots in aligned_sent.mots:
-			if fr_dict[mots] == 0:
-				fr_dict[mots] = fr_count
-				fr_count += 1
-			new_mots.append(fr_dict[mots])
+		for j, en_word in enumerate(alignSent.words):
+			
+			# Initialize the maximum probability with Null token
+			max_alignProb = (self.probabilities[en_word][None]*self.alignments[0][j+1][l_e][l_f], None)
+			for i, fr_word in enumerate(alignSent.mots):
+				# Find out the maximum probability
+				max_alignProb = max(max_alignProb,
+					(self.probabilities[en_word][fr_word]*self.alignments[i+1][j+1][l_e][l_f], i))
 
-		new_bitexts.append(AlignedSent(new_words, new_mots, aligned_sent.alignment))
+			# If the maximum probability is not Null token,
+			# then append it to the alignment. 
+			if max_alignProb[1] is not None:
+				alignment.append((j, max_alignProb[1]))
 
-	return en_dict, fr_dict, new_bitexts
+		return AlignedSent(alignSent.words, alignSent.mots, alignment)
 
+	def alignSents(self, alignSents):
+		"""
+		Returns the alignment result for several sentence pairs. 
+		"""
 
-en_dict, fr_dict, bitexts = replaceByNumber(comtrans.aligned_sents()[:300])
+		if self.probabilities is None or self.alignments is None:
+			raise ValueError("The model does not train.")
 
-ibm = IBMModel2(bitexts, 5)
+		aligned_sents = []
+		for sent in alignSents:
+			new_alignSent = AlignedSent(sent.words, sent.mots)
+			aligned_sents.append(self.align(new_alignSent))
 
-aligned_sents = ibm.alignSents(bitexts)
+		return aligned_sents
 
-prec, recall, error_rate = ibm.evaluate(bitexts, aligned_sents)
+	def evaluate(self, bitexts, alignSents):
+		"""
+		Returns the evaluation for the alignments of several 
+		sentence pairs.
+		"""
+		count = 0 
+		prec   = []
+		recall = []
+		error_rate = []
+		for item in alignSents:
+			prec.append(bitexts[count].precision(item))
+			recall.append(bitexts[count].recall(item))
+			error_rate.append(bitexts[count].alignment_error_rate(item))
+			count += 1
+		return sum(prec)/count, sum(recall)/count, sum(error_rate)/count
+
+# run doctests
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+
