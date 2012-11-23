@@ -1,0 +1,212 @@
+# Activity Log - Web Search and Text Analysis
+# Hengfeng Li
+# Github ID: HengfengLi
+# Student ID: 383606
+# Project 2
+
+"""
+1st hour
+
+Our team has a short meeting to discuss the initial work plan and
+milestones for the project. We decide to have a group meeting on 
+next Monday. We set up some tasks for each team member. 
+
+2nd hour 
+
+Create our project repo on the Github and I start to read the 4.4.2
+section about IBM model 3 on Koehn's book. I just understand some 
+basic notion of IBM model 3, which adds the fertility and NULL
+insertion.
+
+3rd hour
+
+I carefully read the math formula of IBM Model 3, which is more 
+complicated than IBM Model 1 and 2. The formula of probability 
+of the NULL token completely, which has a combinatorial
+term, is not easy to understand. 
+
+4th hour
+
+I read the section 4.4.3 of koehn's book, which mainly talks about
+the training for Model 3. In Model 3, we cannot reduce the 
+complexity of possible alignments from exponential number to
+polynomial. So we need to resort to sampling the space of possible 
+alignments, which uses a heuristic method called hill climbing. 
+
+5th hour
+
+I spend time to read the pseudo code of traning for IBM Model 3 with
+the notions from previous reading. I mainly focus on the implementation
+of hill climbing, because this is my task on work plan. I meet some 
+problems on how to implement the probability function.
+
+6th hour
+
+After I review the previous reading, I find that the computation of 
+alignment probability needs the fertility and NULL insertion probabilities.
+But the problem is that I don't know how to initialize those probabilities.
+I look for the reference code in GIZA and I find that there is a function
+called "prob_of_target_and_alignment_given_source" on the model3_viterbi.cpp
+file, which is to compute alignment probability. 
+
+7th - 8th hour
+
+We have a group meeting which lasts for 2 hours. We discuss more details 
+of work plan, milestones, and each members' responsibility. 
+
+Also, we discuss the tasks of each team member on oral presentation. Then,
+we work for the presentation slides together. 
+
+9th - 10th hour
+
+I read the paper "Bleu: A Method for Automatic Evaluation of Machine
+Translation", because I am responsible for the Bleu part topic of our
+oral presentation. Bleu is a method of automatic evaluation for machine
+translation, which mainly is based on the modified n-gram precision and 
+brevity penalty.
+
+11th hour
+
+I use latex to add some n-gram precision formulas on the presentation slides.
+I write down my content of speech and practice my oral presentation by myself.
+
+12th - 13th hour
+
+After we have a rehearsal, we find our content is not enough because it only
+takes 12 minutes. So we decided to add more contents to our oral presentation.
+And my teammates give me some feedbacks about my topic bleu. I modify my 
+slides and add some examples which can be better to let audiences understand 
+bleu method.
+
+14th hour
+
+I arrange my activity logs and write them into document, because I always
+use some simple words to record my activity on my notebook. When I transform 
+those records to activity logs, I need to write more sentences to explain 
+them. 
+
+15th - 16th hour
+
+I review the concept of hill climbing and read the reference code on textbook.
+I totally understand how the hill climbing works and I write the code of 
+hill_climb and probability functions. 
+
+17th - 18th hour
+
+Group meeting discuss current progress of our project and decide what 
+we should do on the next phrase. We decide the time of next meeting and 
+we should present the code of each part which each team member is responsible
+for.
+
+19th - 20th hour
+
+I am looking for the data sets with multiple translation references.
+I find that there are three places which might provide such data sets.
+
+http://www.ldc.upenn.edu/Catalog/catalogEntry.jsp?catalogId=LDC2010T23
+http://iwslt2010.fbk.eu/node/27
+http://www.statmt.org/wmt12/metrics-task.html
+
+21st - 23rd hour
+
+I review the details of Bleu method and implement its initial code. 
+In the Bleu method, we can adjust the weights of different n grams. 
+The 1-grams tends to satisfy the adequacy and longer n-grams stands
+for the fluency.
+
+24th hour
+
+Group meeting discuss the current progress of our project that although
+we have already done each parts of IBM Model 3, we still need to 
+integrate and debug all parts and make some tests. 
+
+25th - 26th hour
+
+I modify the IBM model 1 and IBM model 2 to statis method, because 
+I think the static method will save the memory usage. I did some tests
+on project 1 that compare with the cost of creating an instance and 
+calling a method directly. 
+
+27th - 28th hour
+
+I modify some parts of the main function and integrate it into the 
+complete program.
+
+29th - 30th hour
+
+I review the pseudo-code on textbook and modify some stuff of the 
+neightboring function, because the pseudo-code of textbook has 
+some errors that cause a confused usage of indexes of i and j. 
+Actually, the 'j' is the index of English sentence and the 'i'
+is the index of French sentence. The pseudo-code makes some mistakes
+on that problem, e.g., it uses 'j' to represent the index of French
+sentence, but it also uses 'j' as an index to get a word from 
+English sentence.
+
+31st - 32th hour
+
+I meet an problem that the program throws an exception of number 
+divided by zero. I spend some time to identify which part reports
+this exception. I adopt the strategy that n and distortion table 
+are initialized by a fixed value.
+
+33rd hour
+
+I am confused by the fertility concept, because I am not sure
+that the value of fertility depends on each alignment or has an
+uniform value for all the alignments generated by the neighbouring
+method.
+
+34th - 35th hour
+
+I work for the fertility problem. As there is no explaination
+where the fertility comes from in the textbook, I look the 
+source code of GIZA and I find out that its neighbouring method
+will change the fertility value. I modify the code so that 
+the fertility value will be changed according to the alignment.
+
+36th - 37th hour
+
+My teammate suggest me that don't use the static method, which 
+looks terrible. So I change change back to the original method, 
+that should create an instance of class.
+
+38th hour
+
+I meet a problem, when the length of sentence becomes longer,
+the alignments generated by neighbouring will be up to more 
+than 2000. This causes that the memory increases continuely 
+and the program becomes very slow.
+
+39th - 40th hour
+
+After I look at Europarl data, I find that it is not suitable for 
+the tests of BLEU because it is just parallel corpus for two different 
+languages. However, the BLEU needs the data that consists of 
+several translations of same language, which one is the candidate
+translated by machine and others are the references translated by
+human beings. 
+
+I find that the shared tasks for the NAACL 2012 Workshops on 
+Statistical Machine Translation provides some data sets, which has 
+the translations generated by machine translation and the reference
+translation.
+
+41st - 42nd hour
+
+I use the data sets from the NAACL 2012 SEVENTH WORKSHOP 
+ON STATISTICAL MACHINE TRANSLATION to test the BLEU method.
+Also, I write some documents for the BLEU method.
+
+43rd hour
+
+Group meeting decides the clean-up work and will submit it on 
+Friday.
+
+44th - 45th hour
+
+I complete some clean-up work and finish the activity logs. Besides,
+I add the hashable dict Class and use the set collection to replace 
+the list collection in some places.
+
+"""
