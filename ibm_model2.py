@@ -1,5 +1,4 @@
 # Hengfeng Li
-# 383606
 # 2012-04-12
 """
 Activity Log

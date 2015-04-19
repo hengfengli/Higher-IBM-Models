@@ -1,7 +1,6 @@
 # Activity Log - Web Search and Text Analysis
 # Hengfeng Li
 # Github ID: HengfengLi
-# Student ID: 383606
 # Project 2
 
 """
